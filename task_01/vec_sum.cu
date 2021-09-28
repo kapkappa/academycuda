@@ -68,6 +68,8 @@ cudaEvent_t start, stop;
 cudaEventCreate(&start);
 cudaEventCreate(&stop);
 
+double t3 = timer();
+
 cudaEventRecord(start);
 
     vecAdd<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
@@ -75,13 +77,16 @@ cudaEventRecord(start);
 cudaDeviceSynchronize();
 cudaEventRecord(stop);
 
+double t4 = timer();
+
     cudaMemcpy(h_c, d_c, bytes, cudaMemcpyDeviceToHost);
 
 cudaEventSynchronize(stop);
 
 float ms = 0;
 cudaEventElapsedTime(&ms, start, stop);
-std::cout << "gpu time is: " << ms << std::endl;
+std::cout << "(Cuda runtime) Gpu time is: " << t4-t3 << std::endl;
+std::cout << "(Timer) Gpu time is: " << ms << std::endl;
 
     for (int i = 0; i < n; i++) {
         if (abs(h_c[i]-h_a[i]-h_b[i]) >= EPS) {
