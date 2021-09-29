@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cuda.h>
+#include <cuda_runtime.h>
 #include <cstdlib>
 #include <assert.h>
 #include <sys/time.h>
@@ -16,15 +17,6 @@ double timer() {
 __global__ void transpose(double *M, double *M_t, int n) {
 
     int Idx = blockIdx.x * B_SIZE + threadIdx.x;
-//    int y = blockIdx.y * B_SIZE + threadIdx.y;
-//    int Width = gridDim.x * B_SIZE;
-
-//    int global = y * Width + x;
-//    if (global < n * n) return;
-
-//    for (int j = 0; j < blockDim.x; j += blockDim.y) {
-//        M_t[x * Width + (y+j)] = M[(y+j) * Width + x];
-//    }
 
     if(Idx < n*n) {
         int x = Idx % n;
@@ -67,10 +59,10 @@ int main(int argc, char ** argv) {
     }
 
     double t2 = timer();
-    std::cout << "CPU time: " << t2-t1 << std::endl;
+    std::cout << "Cpu time: " << t2-t1 << std::endl;
 
-    print(M, n);
-    print(M_t, n);
+//    print(M, n);
+//    print(M_t, n);
 
     dim3 block(B_SIZE);
     dim3 grid((n * n - 1) / B_SIZE + 1);
@@ -81,11 +73,35 @@ int main(int argc, char ** argv) {
 
     cudaMemcpy(M_dev, M, size, cudaMemcpyHostToDevice);
 
+cudaEvent_t start, stop;
+cudaEventCreate(&start);
+cudaEventCreate(&stop);
+
+cudaEventRecord(start);
+
     transpose<<<grid, block>>>(M_dev, M_t_dev, n);
+
+cudaDeviceSynchronize();
+cudaEventRecord(stop);
 
     cudaMemcpy(M_t, M_t_dev, size, cudaMemcpyDeviceToHost);
 
-    print(M_t, n);
+cudaEventSynchronize(stop);
+
+float ms = 0;
+cudaEventElapsedTime(&ms, start, stop);
+std::cout << "Gpu time is: " << ms << std::endl;
+
+//    print(M_t, n);
+
+    bool check = true;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            check *= (M[i*n+j] == M_t[j*n+i]);
+        }
+    }
+    if (check) std::cout << "CHECK PASSED!" << std::endl;
+    else std::cout << "CHECK FAILED!" << std::endl;
 
     free(M);
     free(M_t);
