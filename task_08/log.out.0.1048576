@@ -1,0 +1,62 @@
+Sender: LSF System <lsfadmin@polus-c4-ib.bmc.hpc.cs.msu.ru>
+Subject: Job 770663: <# this file was automaticly created by mpisubmit.pl script for edu-acad2021-205 #;source /polusfs/setenv/setup.SMPI;#BSUB -n 1;#BSUB -W 00:15;#BSUB -gpu "num=1:mode=exclusive_process";#BSUB -o log.out.0.1048576;#BSUB -e gpu.err.0.1048576;OMP_NUM_THREADS=1 mpiexec prog_gpu 1048576 0> in cluster <MSUCluster> Done
+
+Job <# this file was automaticly created by mpisubmit.pl script for edu-acad2021-205 #;source /polusfs/setenv/setup.SMPI;#BSUB -n 1;#BSUB -W 00:15;#BSUB -gpu "num=1:mode=exclusive_process";#BSUB -o log.out.0.1048576;#BSUB -e gpu.err.0.1048576;OMP_NUM_THREADS=1 mpiexec prog_gpu 1048576 0> was submitted from host <polus-ib.bmc.hpc.cs.msu.ru> by user <edu-acad2021-205> in cluster <MSUCluster> at Wed Sep 29 16:31:16 2021
+Job was executed on host(s) <polus-c4-ib.bmc.hpc.cs.msu.ru>, in queue <short>, as user <edu-acad2021-205> in cluster <MSUCluster> at Wed Sep 29 16:31:16 2021
+</home_edu/edu-acad2021-/edu-acad2021-205> was used as the home directory.
+</home_edu/edu-acad2021-/edu-acad2021-205/academycuda/task_08> was used as the working directory.
+Started at Wed Sep 29 16:31:16 2021
+Terminated at Wed Sep 29 16:31:47 2021
+Results reported at Wed Sep 29 16:31:47 2021
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+# this file was automaticly created by mpisubmit.pl script for edu-acad2021-205 #
+source /polusfs/setenv/setup.SMPI
+#BSUB -n 1
+#BSUB -W 00:15
+#BSUB -gpu "num=1:mode=exclusive_process"
+#BSUB -o log.out.0.1048576
+#BSUB -e gpu.err.0.1048576
+OMP_NUM_THREADS=1 mpiexec prog_gpu 1048576 0
+
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   30.41 sec.
+    Max Memory :                                 2076 MB
+    Average Memory :                             1779.57 MB
+    Total Requested Memory :                     -
+    Delta Memory :                               -
+    Max Swap :                                   -
+    Max Processes :                              5
+    Max Threads :                                12
+    Run time :                                   37 sec.
+    Turnaround time :                            31 sec.
+
+The output (if any) follows:
+
+Vector length     = 134217728 (1024 MB)
+Stencil radius    = 5
+
+Blocks            = 131072
+Threads per block = 1024
+Total threads     = 134217728
+Number of grids   = 1
+
+GPU time: 6.7799
+Success! All elements match CPU result.
+Running stencil with the CPU.
+
+CPU Checking time: 13.3393
+
+
+PS:
+
+Read file <gpu.err.0.1048576> for stderr output of this job.
+
