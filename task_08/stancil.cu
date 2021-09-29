@@ -13,7 +13,7 @@
 int gridSize  = GRIDSIZE;
 int blockSize = BLOCKSIZE;
 
-const int EPS = 1.e-10;
+const double EPS = 1.e-10;
 
 double timer() {
     struct timeval tp;
@@ -112,8 +112,8 @@ void checkResults (double *h_in, double *h_out, int DoCheck=True) {
    // to check the operation of this code.
    // If DoCheck is set to False, it can be used to time the CPU.
    int i, j, ij;
-   double result, err;
-   err = 0;
+   double result;
+   int err = 0;
    for (i=0; i<N; i++){  // major index.
       result = 0;
       for (j=-RADIUS; j<=RADIUS; j++){
@@ -125,8 +125,8 @@ void checkResults (double *h_in, double *h_out, int DoCheck=True) {
          if (abs(h_out[i] - result) > EPS) { // count errors.
             err++;
             if (err < 8) { // help debug
-               printf("h_out[%d]=%d should be %d\n",i,h_out[i], result);
-            };
+               printf("h_out[%d]=%d should be %d\n", i, h_out[i], result);
+            }
          }
       } else {  // for timing purposes.
          h_out[i] = result;
@@ -134,7 +134,7 @@ void checkResults (double *h_in, double *h_out, int DoCheck=True) {
    }
 
    if (DoCheck) { // report results.
-      if (err != 0){
+      if (err != 0) {
          printf("Error, %d elements do not match!\n", err);
       } else {
          printf("Success! All elements match CPU result.\n");

@@ -4,7 +4,7 @@
 for version in 0 1; do
 for size in 1048576 268435456; do
 
-mpisubmit.pl --stdout gpu.out.$version.$size --stderr gpu.err.$version.$size --gpu prog_gpu -- $size $version
+mpisubmit.pl --stdout log.out.$version.$size --stderr gpu.err.$version.$size --gpu prog_gpu -- $size $version
 
 done
 done
