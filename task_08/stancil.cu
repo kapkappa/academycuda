@@ -4,14 +4,14 @@
 #include <cuda_device_runtime_api.h>
 #include <sys/time.h>
 
-// define vector length, stencil radius,
-#define N (256*1024*512l)
+//#define N (1024*1024*512l)
 #define RADIUS 5
 #define BLOCKSIZE 1024
-#define GRIDSIZE ((N-1) / BLOCKSIZE + 1)
+//#define GRIDSIZE ((N-1) / BLOCKSIZE + 1)
 
-int gridSize  = GRIDSIZE;
 int blockSize = BLOCKSIZE;
+int gridSize;
+int N;
 
 const double EPS = 1.e-10;
 
@@ -64,7 +64,6 @@ __global__ void stencil_1D (double *in, double *out, long dim) {
   // Go through all data
   // Step all threads in a block to avoid synchronization problem
     while ( gindex < (dim + blockDim.x) ) {
-
     /* FIXME PART 2 - MODIFIY PROGRAM TO USE SHARED MEMORY. */
 
     // Apply the stencil
@@ -73,7 +72,6 @@ __global__ void stencil_1D (double *in, double *out, long dim) {
             if ( gindex + offset < dim && gindex + offset > -1)
     	        result += in[gindex + offset];
         }
-
     // Store the result
         if (gindex < dim)
             out[gindex] = result;
@@ -82,23 +80,32 @@ __global__ void stencil_1D (double *in, double *out, long dim) {
         gindex += stride;
 
         __syncthreads();
-
     }
 }
 
 __global__ void shared_stencil_1D(double *in, double *out, long dim) {
-     __shared__ double array[BLOCKSIZE];
+     __shared__ double array[BLOCKSIZE + 2 * RADIUS];
 
     long Idx = threadIdx.x + blockDim.x * blockIdx.x;
     int local_idx = threadIdx.x;
-    array[local_idx] = in[Idx];
+    array[RADIUS + local_idx] = in[Idx];
+
+    __syncthreads();
+
+    if ( ((local_idx + RADIUS) >= BLOCKSIZE) && ((Idx + RADIUS) < dim) ) {
+        array[local_idx + 2* RADIUS] = in[Idx + RADIUS];
+    }
+
+    if ( ((local_idx - RADIUS) < 0) && ((Idx - RADIUS) > -1) ) {
+        array[local_idx] = in[Idx - RADIUS];
+    }
 
     __syncthreads();
 
     double result = 0;
     for (int offset = -RADIUS; offset <= RADIUS; offset++) {
-        if (local_idx + offset < dim && local_idx + offset > -1)
-            result += array[local_idx + offset];
+        if (Idx + offset < dim && Idx + offset > -1)
+            result += array[RADIUS + local_idx + offset];
     }
     out[Idx] = result;
 }
@@ -125,7 +132,7 @@ void checkResults (double *h_in, double *h_out, int DoCheck=True) {
          if (abs(h_out[i] - result) > EPS) { // count errors.
             err++;
             if (err < 8) { // help debug
-               printf("h_out[%d]=%d should be %d\n", i, h_out[i], result);
+               printf("h_out[%d]=%f should be %f\n", i, h_out[i], result);
             }
          }
       } else {  // for timing purposes.
@@ -144,8 +151,10 @@ void checkResults (double *h_in, double *h_out, int DoCheck=True) {
 
 int main(int argc, char**argv) {
     assert(argc==3);
-//    int N = atoi(argv[1]);
+    N = atoi(argv[1]);
     bool version = atoi(argv[2]);
+
+    gridSize = (N-1) / BLOCKSIZE + 1;
 
     double *h_in, *h_out;
     double *d_in, *d_out;
@@ -173,10 +182,11 @@ int main(int argc, char**argv) {
     cudaEventCreate(&stop);
     cudaEventRecord(start);
 
-    if(version == 0)
+    if (version == 0)
         stencil_1D<<<gridSize,blockSize>>>(d_in, d_out, N);
     else
-        shared_stencil_1D<<<gridSize, blockSize, BLOCKSIZE>>>(d_in, d_out, N);
+        shared_stencil_1D<<<gridSize, blockSize, BLOCKSIZE+2*RADIUS>>>(d_in, d_out, N);
+//        shared_stencil_1D<<<gridSize, blockSize, BLOCKSIZE>>>(d_in, d_out, N);
 
     cudaDeviceSynchronize();
     cudaEventRecord(stop);
