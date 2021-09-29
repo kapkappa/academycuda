@@ -12,3 +12,15 @@
 > Gpu time : 0.4848
 
 Если сравнить с заданием номер 1, видно, что эффективность упала на несколько порядков, при тех же размерах входных векторов.
+
+Собрана метрика:
+> ==129395== NVPROF is profiling process 129395, command: ./prog_gpu 100000000
+> ==129395== Profiling application: ./prog_gpu 100000000
+> ==129395== Profiling result:
+> ==129395== Metric result:
+> Invocations                               Metric Name                        Metric Description         Min         Max         Avg
+> Device "Tesla P100-SXM2-16GB (0)"
+>     Kernel: vecAdd(double*, double*, double*, int)
+>           1                 warp_execution_efficiency                 Warp Execution Efficiency     100.00%     100.00%     100.00%
+
+Причём, программа компилировалась с флагом -O0.
