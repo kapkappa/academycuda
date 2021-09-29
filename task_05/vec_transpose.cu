@@ -28,7 +28,6 @@ __global__ void static_trans(int *Vec, int N) {
 
 __global__ void dynamic_trans(int *Vec, int N) {
     extern __shared__ int array[];
-//    int *array_ptr = array;
 
     int Idx = threadIdx.x;
     array[Idx] = Vec[Idx];
@@ -57,7 +56,6 @@ int main(int argc, char **argv) {
 
     int *V_dev;
     cudaMalloc(&V_dev, size);
-    cudaMemcpy(V_dev, V, size, cudaMemcpyHostToDevice);
 
 cudaEvent_t start, stop;
 cudaEventCreate(&start);
@@ -65,6 +63,7 @@ cudaEventCreate(&stop);
 
 cudaEventRecord(start);
 
+    cudaMemcpy(V_dev, V, size, cudaMemcpyHostToDevice);
     transpose<<<grid, block>>>(V_dev, n);
 
 cudaDeviceSynchronize();
@@ -86,10 +85,9 @@ std::cout << "Common time is: " << ms << std::endl;
 /////////////////////////////////////////////////
 //STATIC SHARED
 
-    cudaMemcpy(V_dev, V, size, cudaMemcpyHostToDevice);
-
 cudaEventRecord(start);
 
+    cudaMemcpy(V_dev, V, size, cudaMemcpyHostToDevice);
     static_trans<<<grid, block, n>>>(V_dev, n);
 
 cudaDeviceSynchronize();
@@ -110,10 +108,9 @@ std::cout << "Static sh m time is: " << ms << std::endl;
 /////////////////////////////////////////////////
 //DYNAMIC SHARED
 
-cudaMemcpy(V_dev, V, size, cudaMemcpyHostToDevice);
-
 cudaEventRecord(start);
 
+    cudaMemcpy(V_dev, V, size, cudaMemcpyHostToDevice);
     dynamic_trans<<<grid, block, n>>>(V_dev, n);
 
 cudaDeviceSynchronize();
