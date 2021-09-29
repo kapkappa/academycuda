@@ -1,13 +1,13 @@
-Sender: LSF System <lsfadmin@polus-c2-ib.bmc.hpc.cs.msu.ru>
-Subject: Job 770665: <# this file was automaticly created by mpisubmit.pl script for edu-acad2021-205 #;source /polusfs/setenv/setup.SMPI;#BSUB -n 1;#BSUB -W 00:15;#BSUB -gpu "num=1:mode=exclusive_process";#BSUB -o log.out.1.1048576;#BSUB -e gpu.err.1.1048576;OMP_NUM_THREADS=1 mpiexec prog_gpu 1048576 1> in cluster <MSUCluster> Done
+Sender: LSF System <lsfadmin@polus-c3-ib.bmc.hpc.cs.msu.ru>
+Subject: Job 770759: <# this file was automaticly created by mpisubmit.pl script for edu-acad2021-205 #;source /polusfs/setenv/setup.SMPI;#BSUB -n 1;#BSUB -W 00:15;#BSUB -gpu "num=1:mode=exclusive_process";#BSUB -o log.out.1.1048576;#BSUB -e gpu.err.1.1048576;OMP_NUM_THREADS=1 mpiexec prog_gpu 1048576 1> in cluster <MSUCluster> Done
 
-Job <# this file was automaticly created by mpisubmit.pl script for edu-acad2021-205 #;source /polusfs/setenv/setup.SMPI;#BSUB -n 1;#BSUB -W 00:15;#BSUB -gpu "num=1:mode=exclusive_process";#BSUB -o log.out.1.1048576;#BSUB -e gpu.err.1.1048576;OMP_NUM_THREADS=1 mpiexec prog_gpu 1048576 1> was submitted from host <polus-ib.bmc.hpc.cs.msu.ru> by user <edu-acad2021-205> in cluster <MSUCluster> at Wed Sep 29 16:31:16 2021
-Job was executed on host(s) <polus-c2-ib.bmc.hpc.cs.msu.ru>, in queue <short>, as user <edu-acad2021-205> in cluster <MSUCluster> at Wed Sep 29 16:31:17 2021
+Job <# this file was automaticly created by mpisubmit.pl script for edu-acad2021-205 #;source /polusfs/setenv/setup.SMPI;#BSUB -n 1;#BSUB -W 00:15;#BSUB -gpu "num=1:mode=exclusive_process";#BSUB -o log.out.1.1048576;#BSUB -e gpu.err.1.1048576;OMP_NUM_THREADS=1 mpiexec prog_gpu 1048576 1> was submitted from host <polus-ib.bmc.hpc.cs.msu.ru> by user <edu-acad2021-205> in cluster <MSUCluster> at Wed Sep 29 17:39:39 2021
+Job was executed on host(s) <polus-c3-ib.bmc.hpc.cs.msu.ru>, in queue <short>, as user <edu-acad2021-205> in cluster <MSUCluster> at Wed Sep 29 17:39:40 2021
 </home_edu/edu-acad2021-/edu-acad2021-205> was used as the home directory.
 </home_edu/edu-acad2021-/edu-acad2021-205/academycuda/task_08> was used as the working directory.
-Started at Wed Sep 29 16:31:17 2021
-Terminated at Wed Sep 29 16:31:49 2021
-Results reported at Wed Sep 29 16:31:49 2021
+Started at Wed Sep 29 17:39:40 2021
+Terminated at Wed Sep 29 17:39:42 2021
+Results reported at Wed Sep 29 17:39:42 2021
 
 Your job looked like:
 
@@ -28,39 +28,32 @@ Successfully completed.
 
 Resource usage summary:
 
-    CPU time :                                   30.36 sec.
-    Max Memory :                                 2076 MB
-    Average Memory :                             1186.43 MB
+    CPU time :                                   0.40 sec.
+    Max Memory :                                 1 MB
+    Average Memory :                             1.00 MB
     Total Requested Memory :                     -
     Delta Memory :                               -
     Max Swap :                                   -
-    Max Processes :                              5
-    Max Threads :                                12
-    Run time :                                   34 sec.
-    Turnaround time :                            33 sec.
+    Max Processes :                              1
+    Max Threads :                                1
+    Run time :                                   2 sec.
+    Turnaround time :                            3 sec.
 
 The output (if any) follows:
 
-Vector length     = 134217728 (1024 MB)
+Vector length     = 1048576 (8 MB)
 Stencil radius    = 5
 
-Blocks            = 131072
+Blocks            = 1024
 Threads per block = 1024
-Total threads     = 134217728
+Total threads     = 1048576
 Number of grids   = 1
 
-GPU time: 4.05606
-h_out[1019]=0 should be 0
-h_out[1020]=0 should be 0
-h_out[1021]=0 should be 0
-h_out[1022]=0 should be 0
-h_out[1023]=0 should be 0
-h_out[1024]=0 should be 0
-h_out[1025]=0 should be 0
-Error, 0 elements do not match!
+GPU time: 0.069472
+Success! All elements match CPU result.
 Running stencil with the CPU.
 
-CPU Checking time: 13.2976
+CPU Checking time: 0.0118041
 
 
 PS:

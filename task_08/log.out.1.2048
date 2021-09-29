@@ -1,0 +1,62 @@
+Sender: LSF System <lsfadmin@polus-c1-ib.bmc.hpc.cs.msu.ru>
+Subject: Job 770756: <# this file was automaticly created by mpisubmit.pl script for edu-acad2021-205 #;source /polusfs/setenv/setup.SMPI;#BSUB -n 1;#BSUB -W 00:15;#BSUB -gpu "num=1:mode=exclusive_process";#BSUB -o log.out.1.2048;#BSUB -e gpu.err.1.2048;OMP_NUM_THREADS=1 mpiexec prog_gpu 2048 1> in cluster <MSUCluster> Done
+
+Job <# this file was automaticly created by mpisubmit.pl script for edu-acad2021-205 #;source /polusfs/setenv/setup.SMPI;#BSUB -n 1;#BSUB -W 00:15;#BSUB -gpu "num=1:mode=exclusive_process";#BSUB -o log.out.1.2048;#BSUB -e gpu.err.1.2048;OMP_NUM_THREADS=1 mpiexec prog_gpu 2048 1> was submitted from host <polus-ib.bmc.hpc.cs.msu.ru> by user <edu-acad2021-205> in cluster <MSUCluster> at Wed Sep 29 17:39:06 2021
+Job was executed on host(s) <polus-c1-ib.bmc.hpc.cs.msu.ru>, in queue <short>, as user <edu-acad2021-205> in cluster <MSUCluster> at Wed Sep 29 17:39:07 2021
+</home_edu/edu-acad2021-/edu-acad2021-205> was used as the home directory.
+</home_edu/edu-acad2021-/edu-acad2021-205/academycuda/task_08> was used as the working directory.
+Started at Wed Sep 29 17:39:07 2021
+Terminated at Wed Sep 29 17:39:10 2021
+Results reported at Wed Sep 29 17:39:10 2021
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+# this file was automaticly created by mpisubmit.pl script for edu-acad2021-205 #
+source /polusfs/setenv/setup.SMPI
+#BSUB -n 1
+#BSUB -W 00:15
+#BSUB -gpu "num=1:mode=exclusive_process"
+#BSUB -o log.out.1.2048
+#BSUB -e gpu.err.1.2048
+OMP_NUM_THREADS=1 mpiexec prog_gpu 2048 1
+
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   0.39 sec.
+    Max Memory :                                 4 MB
+    Average Memory :                             3.00 MB
+    Total Requested Memory :                     -
+    Delta Memory :                               -
+    Max Swap :                                   -
+    Max Processes :                              4
+    Max Threads :                                5
+    Run time :                                   1 sec.
+    Turnaround time :                            4 sec.
+
+The output (if any) follows:
+
+Vector length     = 2048 (0 MB)
+Stencil radius    = 5
+
+Blocks            = 2
+Threads per block = 1024
+Total threads     = 2048
+Number of grids   = 1
+
+GPU time: 0.033952
+Success! All elements match CPU result.
+Running stencil with the CPU.
+
+CPU Checking time: 2.31266e-05
+
+
+PS:
+
+Read file <gpu.err.1.2048> for stderr output of this job.
+
