@@ -13,7 +13,7 @@
 int gridSize  = GRIDSIZE;
 int blockSize = BLOCKSIZE;
 
-const int EPS = 1.e-15;
+const int EPS = 1.e-10;
 
 double timer() {
     struct timeval tp;
@@ -187,13 +187,9 @@ int main(int argc, char**argv) {
 
     float ms = 0;
     cudaEventElapsedTime(&ms, start, stop);
-    std::cout << "GPU time: " << ms << std::endl;
+    std::cout << "\nGPU time: " << ms << std::endl;
 
     checkResults(h_in, h_out);
-////////////////////////////////////////////////////////
-
-//    shared_stencil_1D<<<gridSize, blockSize, blockSize>>>(d_in, d_out, N);
-
 
     cudaFree(d_in);
     cudaFree(d_out);
@@ -203,7 +199,8 @@ int main(int argc, char**argv) {
     double t1 = timer();
     checkResults(h_in, h_out, False);
     double t2 = timer();
-    std::cout << "CPU Checking time: " << t2-t1 << std::endl;
+    std::cout << "\nCPU Checking time: " << t2-t1 << std::endl;
+
     free(h_in);
     free(h_out);
 
