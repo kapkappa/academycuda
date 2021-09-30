@@ -6,7 +6,9 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-#define BLOCKSIZE 256
+#define BLOCKSIZE 1024
+
+const float EPS = 1.e-06;
 
 inline
 cudaError_t checkCuda(cudaError_t result) {
@@ -31,9 +33,9 @@ void unified_sample (int size = 1048576) {
 
     float *a, *b, *c;
 
-    cudaEvent_t uniStart, uniStop;
-    cudaEventCreate(&uniStart);
-    cudaEventCreate(&uniStop);
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
 
     dim3 block(BLOCKSIZE);
     dim3 grid((unsigned int)ceil(n/(float)block.x));
@@ -48,18 +50,22 @@ void unified_sample (int size = 1048576) {
         c[i] = 0;
     }
 
-    cudaEventRecord(uniStart);
+    cudaEventRecord(start);
 
     vectorAddGPU<<<grid, block>>>(a, b, c, n);
 
-    cudaEventRecord(uniStop);
-    cudaEventSynchronize(uniStop);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
     float ms = 0;
-    cudaEventElapsedTime(&ms, uniStart, uniStop);
+    cudaEventElapsedTime(&ms, start, stop);
     printf("UNI: Memalloc(unified memory) + Kernel time is: %f\n", ms);
 
     cudaDeviceSynchronize();
 
+    printf("NO CHECK!\n");
+
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
     cudaFree(a);
     cudaFree(b);
     cudaFree(c);
@@ -72,9 +78,9 @@ void pinned_sample (int size = 1048576) {
     float *d_a, *d_b, *d_c;
 //    float errNorm, refNorm, ref, diff;
 
-    cudaEvent_t pinStart, pinStop;
-    cudaEventCreate(&pinStart);
-    cudaEventCreate(&pinStop);
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
 
     dim3 block(BLOCKSIZE);
     dim3 grid((unsigned int)ceil(n/(float)block.x));
@@ -92,21 +98,33 @@ void pinned_sample (int size = 1048576) {
         c[i] = 0;
     }
 
-    cudaEventRecord(pinStart);
+    cudaEventRecord(start);
 
     cudaMemcpy(d_a, a, nBytes, cudaMemcpyHostToDevice);
     cudaMemcpy(d_b, b, nBytes, cudaMemcpyHostToDevice);
     vectorAddGPU<<<grid, block>>>(d_a, d_b, d_c, n);
     cudaMemcpy(c, d_c, nBytes, cudaMemcpyDeviceToHost);
 
-    cudaEventRecord(pinStop);
-    cudaThreadSynchronize();
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
     float ms = 0;
-    cudaEventElapsedTime(&ms, pinStart, pinStop);
+    cudaEventElapsedTime(&ms, start, stop);
     printf("PIN: Memcpy + Kernel time is: %f\n", ms);
 
     cudaDeviceSynchronize();
 
+    //CHECK
+    for (int i = 0; i < n; i++) {
+        if (abs(c[i] - a[i] - b[i]) > EPS) {
+            printf("CHECK FAILED!!!\n");
+            printf("Differ: %f\n", c[i]-a[i]-b[i]);
+            break;
+        }
+    }
+    printf("CHECK PASSED!\n");
+
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
     cudaFree(a);
     cudaFree(b);
     cudaFree(c);
@@ -158,84 +176,126 @@ void usual_sample (int size = 1048576) {
     cudaMemcpy(c, c_d, n*sizeof(float), cudaMemcpyDeviceToHost);
 
     cudaEventRecord(stop);
-    cudaThreadSynchronize();
+    cudaEventSynchronize(stop);
     float milliseconds = 0;
     cudaEventElapsedTime(&milliseconds, start, stop);
     printf("USUAL Memcpy + Kernel: %f ms\n", milliseconds);
 
     cudaDeviceSynchronize();
 
+    //CHECK
+    for (int i = 0; i < n; i++) {
+        if (abs(c[i] - a[i] - b[i]) > EPS) {
+            printf("CHECK FAILED!!!\n");
+            printf("Differ: %f\n", c[i]-a[i]-b[i]);
+            break;
+        }
+    }
+    printf("CHECK PASSED!\n");
+
     free(a);
     free(b);
     free(c);
-
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
     cudaFree(a_d);
     cudaFree(b_d);
     cudaFree(c_d);
 }
 
 void multigpu (int size) {
-    printf("DEBUG0\n");
     int n = size;
     int nBytes = n * sizeof(float);
 
     dim3 block(BLOCKSIZE);
 
-    printf("DEBUG1\n");
-
     float *a, *b, *c;
-    cudaHostAlloc((void**)&a, nBytes, cudaHostAllocPortable);
-    cudaHostAlloc((void**)&b, nBytes, cudaHostAllocPortable);
-    cudaHostAlloc((void**)&c, nBytes, cudaHostAllocPortable);
-
-    printf("DEBUG2\n");
+    cudaHostAlloc((void**)&a, nBytes, cudaHostAllocDefault);
+    cudaHostAlloc((void**)&b, nBytes, cudaHostAllocDefault);
+    cudaHostAlloc((void**)&c, nBytes, cudaHostAllocDefault);
 
     for (int i = 0; i < n; i++) {
-        a[i] = rand() / (float)RAND_MAX;
-        b[i] = rand() / (float)RAND_MAX;
+//        a[i] = rand() / (float)RAND_MAX;
+//        b[i] = rand() / (float)RAND_MAX;
+        a[i] = i;
+        b[i] = 1;
         c[i] = 0;
     }
 
-    printf("DEBUG3\n");
-
     int deviceCnt;
     cudaGetDeviceCount(&deviceCnt);
+    deviceCnt = 2;
+    printf("Devices: %d", deviceCnt);
 
     int bytes_per_device = nBytes / deviceCnt + 1;
 
-    float *a_d[2], *b_d[2], *c_d[2];
+//    float (*a_d)[deviceCnt], (*b_d)[deviceCnt], (*c_d)[deviceCnt];
+    float **a_d, **b_d, **c_d;
+    a_d = (float**)malloc(sizeof(float*) * deviceCnt);
+    b_d = (float**)malloc(sizeof(float*) * deviceCnt);
+    c_d = (float**)malloc(sizeof(float*) * deviceCnt);
 
-    dim3 grid(n/(deviceCnt*BLOCKSIZE) + 1);
 
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
+    int n_per_device = (n-1)/deviceCnt + 1;
+    dim3 grid((n_per_device-1)/BLOCKSIZE + 1);
 
-//    cudaEventRecord(start);
+    cudaEvent_t start[deviceCnt], stop[deviceCnt];
+    for (int i = 0; i < deviceCnt; i++) {
+        cudaEventCreate(&start[i]);
+        cudaEventCreate(&stop[i]);
+    }
 
     printf("\nParallel starts here\n\n");
 
     for (int i = 0; i < deviceCnt; i++) {
         cudaSetDevice(i);
-        cudaMalloc(&a_d[i], bytes_per_device);
-        cudaMalloc(&b_d[i], bytes_per_device);
-        cudaMalloc(&c_d[i], bytes_per_device);
+        cudaMalloc((void**)&(a_d[i]), bytes_per_device);
+        cudaMalloc((void**)&(b_d[i]), bytes_per_device);
+        cudaMalloc((void**)&(c_d[i]), bytes_per_device);
     }
 
     for (int i = 0; i < deviceCnt; i++) {
         cudaSetDevice(i);
-        cudaMemcpy(a_d[i], a, bytes_per_device, cudaMemcpyHostToDevice);
-        cudaMemcpy(b_d[i], b, bytes_per_device, cudaMemcpyHostToDevice);
+        printf("i am on device %d\nposition is %d\n", i, n_per_device*i);
+        cudaEventRecord(start[i]);
+        cudaMemcpyAsync(a_d[i], a + n_per_device * i, bytes_per_device, cudaMemcpyHostToDevice);
+        cudaMemcpyAsync(b_d[i], b + n_per_device * i, bytes_per_device, cudaMemcpyHostToDevice);
 
-        vectorAddGPU<<<block, grid>>>(a_d[i], b_d[i], c_d[i], n);
+        vectorAddGPU<<<grid, block>>>(a_d[i], b_d[i], c_d[i], n);
 
-        cudaMemcpy(c, c_d[i], bytes_per_device, cudaMemcpyDeviceToHost);
+        cudaMemcpyAsync(c + n_per_device * i, c_d[i], bytes_per_device, cudaMemcpyDeviceToHost);
+        cudaEventRecord(stop[i]);
     }
 
     for (int dev = 0; dev < deviceCnt; dev++) {
         cudaSetDevice(dev);
         cudaDeviceSynchronize();
     }
+
+    for (int i = 0; i < deviceCnt; i++) {
+        float ms = 0;
+        cudaEventElapsedTime(&ms, start[i], stop[i]);
+        printf("Elapsed time on device %d is %f\n", i, ms);
+    }
+
+    for (int i = 0; i < deviceCnt; i++) {
+        cudaEventDestroy(start[i]);
+        cudaEventDestroy(stop[i]);
+    }
+/*
+    for (int i = 0; i < n; i++)
+        printf("%f ", c[i]);
+    printf("\n\n");
+*/
+    //CHECK
+    for (int i = 0; i < n; i++) {
+        if (abs(c[i] - a[i] - b[i]) > EPS) {
+            printf("CHECK FAILED!!!\n");
+            printf("Differ: %f\n", c[i]-a[i]-b[i]);
+            break;
+        }
+    }
+    printf("CHECK PASSED!\n");
 
     cudaFreeHost(a);
     cudaFreeHost(b);
