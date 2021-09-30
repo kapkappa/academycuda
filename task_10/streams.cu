@@ -6,8 +6,10 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-#define STREAMS_NUM 8
+//#define STREAMS_NUM 8
 #define BLOCKSIZE 1024
+
+int STREAMS_NUM;
 
 __global__ void vectorAddGPU(float *a, float *b, float *c, int N, int offset) {
 
@@ -113,9 +115,9 @@ void streams_vec_add(int size = 1048576) {
         cudaStreamCreate(&Stream[i]);
 
     dim3 block(BLOCKSIZE);
-    dim3 grid((StreamSize - 1)/1024 + 1);
+    dim3 grid((StreamSize - 1)/BLOCKSIZE + 1);
 
-    for ( int i = 0; i < STREAMS_NUM; i++) {
+    for (int i = 0; i < STREAMS_NUM; i++) {
 
         int Offset = i * StreamSize;
 
@@ -149,7 +151,10 @@ void streams_vec_add(int size = 1048576) {
 
 
 int main(int argc, char **argv) {
-    assert(argc==2);
-//	samples_vec_add(atoi(argv[1]));
-    streams_vec_add(atoi(argv[1]));
+    assert(argc==4);
+    STREAMS_NUM = atoi(argv[3]);
+    if (atoi(argv[2]) == 0)
+    	sample_vec_add(atoi(argv[1]));
+    else
+        streams_vec_add(atoi(argv[1]));
 }
