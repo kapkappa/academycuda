@@ -28,7 +28,6 @@ void unified_sample (int size = 1048576) {
     dim3 grid((unsigned int)ceil(n/(float)block.x));
 
 //    printf("UNI: allocating memory\n");
-    cudaEventRecord(uniStart);
     cudaMallocManaged(&a, nBytes);
     cudaMallocManaged(&b, nBytes);
     cudaMallocManaged(&c, nBytes);
@@ -38,6 +37,8 @@ void unified_sample (int size = 1048576) {
         b[i] = rand() / (float)RAND_MAX;
         c[i] = 0;
     }
+
+    cudaEventRecord(uniStart);
 
     vectorAddGPU<<<grid, block>>>(a, b, c, n);
 
