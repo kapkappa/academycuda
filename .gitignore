@@ -8,3 +8,4 @@ bfs.*
 object_files
 python.*
 *graph
+tmp*

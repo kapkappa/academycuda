@@ -8,4 +8,4 @@ source /polusfs/setenv/setup.SMPI
 export OMP_NUM_THREADS=160
 export GOMP_CPU_AFFINITY=0-159:8
 
-python ./submit_result.py
+./bfs -load out.orkut-links.el_graph -check -it 200

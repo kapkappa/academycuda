@@ -1,6 +1,8 @@
 #include "verification.h"
 #include "cuda_error_hadling.h"
 #include "converter.h"
+#include "omp.h"
+#include <cstring>
 
 #define TEST_ITERATION_COUNT 200
 
@@ -98,6 +100,10 @@ void user_copy_graph_to_device(GraphCSR &_cpu_graph, GraphCSR &_gpu_graph)
 
     SAFE_CALL(cudaMemcpy(_gpu_graph.outgoing_ptrs, _cpu_graph.outgoing_ptrs, sizeof(long long)*(_gpu_graph.vertices_count + 1), cudaMemcpyHostToDevice));
     SAFE_CALL(cudaMemcpy(_gpu_graph.outgoing_ids, _cpu_graph.outgoing_ids, _gpu_graph.edges_count * sizeof(int), cudaMemcpyHostToDevice));
+
+//    SAFE_CALL(cudaMemcpyAsync(_gpu_graph.outgoing_ptrs, _cpu_graph.outgoing_ptrs, sizeof(long long)*(_gpu_graph.vertices_count + 1), cudaMemcpyHostToDevice));
+//    SAFE_CALL(cudaMemcpyAsync(_gpu_graph.outgoing_ids, _cpu_graph.outgoing_ids, _gpu_graph.edges_count * sizeof(int), cudaMemcpyHostToDevice));
+
 
 /*
     cudaMallocManaged(&_gpu_graph.outgoing_ptrs, sizeof(long long)*(_gpu_graph.vertices_count + 1));
@@ -318,50 +324,83 @@ int main(int argc, char **argv)
 
         double t_start = omp_get_wtime();
         // запускаем копирования данных
-        GraphCSR gpu_graph;
+
+        GraphCSR gpu_graph[2];
         t1 = omp_get_wtime();
-        user_copy_graph_to_device(csr_graph, gpu_graph);
+
+        #pragma omp parallel num_threads(2)
+        {
+            int tid = omp_get_thread_num();
+            cudaSetDevice(tid);
+            int current_gpu = tid % 2;
+            user_copy_graph_to_device(csr_graph, gpu_graph[current_gpu]);
+        }
+
+//        user_copy_graph_to_device(csr_graph, gpu_graph);
+
         t2 = omp_get_wtime();
         cout << "Device->host copy time: " << t2 - t1 << " sec" << endl;
 
         // запускаем алгоритм
         cudaDeviceSynchronize();
         t1 = omp_get_wtime();
-
-        int *device_levels;
+/*
         int vertices_count = gpu_graph.vertices_count;
+        int *device_levels;
         SAFE_CALL(cudaMalloc((void**)&device_levels, vertices_count * sizeof(int)));
-
+*/
         int last_source = 0;
         cout << "will do " << iterations << " iterations" << endl;
-/*
-        #pragma omp parallel num_threads(2);
+
+        cudaDeviceSynchronize();
+
+//        int *device_levels;
+
+        #pragma omp parallel num_threads(2)
         {
             int tid = omp_get_thread_num();
             int current_gpu = tid % 2;
             cudaSetDevice(current_gpu);
 
+            int vertices_count = gpu_graph[current_gpu].vertices_count;
+            int *device_levels;
+            SAFE_CALL(cudaMalloc((void**)&device_levels, vertices_count * sizeof(int)));
+
             int *local_result;
-            cudaHostMalloc(&local_result, graph.vertices_count * sizeof(int));
+            cudaMallocHost(&local_result, gpu_graph[current_gpu].vertices_count * sizeof(int));
 
             #pragma omp for schedule(dynamic)
-*/
-            for(int i = 0; i < iterations; i++)
+            for (int i = 0; i < iterations; i++)
             {
-                last_source = rand() % graph.vertices_count;
-                user_algorithm(gpu_graph, user_result, last_source, device_levels);
+                int source_vertex = rand() % gpu_graph[current_gpu].vertices_count;
+                user_algorithm(gpu_graph[current_gpu], local_result, source_vertex, device_levels);
+
+                if (i == (iterations-1))
+                {
+                    memcpy(user_result, local_result, sizeof(int) * gpu_graph[current_gpu].vertices_count);
+                    last_source = source_vertex;
+                }
             }
 
+            SAFE_CALL(cudaFree(device_levels));
+            SAFE_CALL(cudaFreeHost(local_result));
+        }
 
-
-
+/*
+        for(int i = 0; i < iterations; i++)
+        {
+            last_source = rand() % graph.vertices_count;
+            user_algorithm(gpu_graph, user_result, last_source, device_levels);
+        }
+*/
         cudaDeviceSynchronize();
-        SAFE_CALL(cudaFree(device_levels));
         t2 = omp_get_wtime();
         double t_end = omp_get_wtime();
         cout << "BFS wall time: " << t2 - t1 << " sec" << endl;
 
-        free_memory(gpu_graph);
+//        free_memory(gpu_graph);
+        free_memory(gpu_graph[0]);
+        free_memory(gpu_graph[1]);
 
         cout << endl;
         cout << "#algorithm executed!" << endl;
