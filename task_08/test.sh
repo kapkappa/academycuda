@@ -9,5 +9,4 @@
 #done
 #done
 
-rm gpu.err gpu.out
-mpisubmit.pl --stdout gpu.out --stderr gpu.err --gpu ~/local_cuda/bin/nvprof -- --analysis-metrics -f -o short ~/academycuda/task_08/prog_gpu 268430000 1
+mpisubmit.pl --stdout gpu.nvprof.out --stderr gpu.nvprof.err --gpu ~/local_cuda/bin/nvprof -- -f -o timeline_short ~/academycuda/task_08/prog_gpu 268430000 1
