@@ -17,8 +17,8 @@ Library_Path = -L $(CUDA_DIR)/lib -L $(CUDA_DIR)/lib64
 Libraries += -lcudart -lcudadevrt -lnvgraph
 
 # CPU Compiler flags...
-CXXFLAGS = -O2 -w -m64 -std=c++11 -fopenmp -fpermissive
-CUDAFLAGS = -O2 -Xptxas -dlcm=cg -Wno-deprecated-gpu-targets
+CXXFLAGS = -O3 -w -m64 -std=c++11 -fopenmp -fpermissive
+CUDAFLAGS = -O3 -Xptxas -dlcm=cg -Wno-deprecated-gpu-targets
 
 .DEFAULT_GOAL := all
 

@@ -30,20 +30,20 @@ void parse_cmd_params(int _argc, char **_argv, int &_scale, int &_avg_degree,
         string option(_argv[i]);
         all_params += option + " ";
     }
-    
+
     std::vector<std::string>vstrings = split(all_params);
-    
+
     for (int i = 0; i < vstrings.size(); i++)
     {
         string option = vstrings[i];
-        
+
         //cout << "option: " << option << endl;
-        
+
         if (option.compare("-s") == 0)
         {
             _scale = atoi(vstrings[++i].c_str());
         }
-        
+
         if (option.compare("-e") == 0)
         {
             _avg_degree = atoi(vstrings[++i].c_str());
@@ -92,29 +92,48 @@ void user_copy_graph_to_device(GraphCSR &_cpu_graph, GraphCSR &_gpu_graph)
     _gpu_graph.vertices_count = _cpu_graph.vertices_count;
     _gpu_graph.edges_count = _cpu_graph.edges_count;
 
+
     SAFE_CALL(cudaMalloc((void**)&_gpu_graph.outgoing_ptrs, sizeof(long long)*(_gpu_graph.vertices_count + 1)));
     SAFE_CALL(cudaMalloc((void**)&_gpu_graph.outgoing_ids, sizeof(int) * _gpu_graph.edges_count));
-    
+
     SAFE_CALL(cudaMemcpy(_gpu_graph.outgoing_ptrs, _cpu_graph.outgoing_ptrs, sizeof(long long)*(_gpu_graph.vertices_count + 1), cudaMemcpyHostToDevice));
     SAFE_CALL(cudaMemcpy(_gpu_graph.outgoing_ids, _cpu_graph.outgoing_ids, _gpu_graph.edges_count * sizeof(int), cudaMemcpyHostToDevice));
+
+/*
+    cudaMallocManaged(&_gpu_graph.outgoing_ptrs, sizeof(long long)*(_gpu_graph.vertices_count + 1));
+    cudaMallocManaged(&_gpu_graph.outgoing_ids, sizeof(int) * _gpu_graph.edges_count);
+    for (int i = 0; i < _gpu_graph.vertices_count + 1; i++)
+        _gpu_graph.outgoing_ptrs[i] = _cpu_graph.outgoing_ptrs[i];
+
+    for (int i = 0; i < _gpu_graph.edges_count; i++)
+        _gpu_graph.outgoing_ids[i] = _cpu_graph.outgoing_ids[i];
+*/
+/*
+    vector<int> large_vertices;
+    for (int cur_ver = 0; cur_ver < _gpu_graph.vertices_count; cur_ver++) {
+        int connections_count = _cpu_graph.outgoing_ptrs[cur_ver+1] - _cpu_graph.outgoing_ptrs[cur_ver];
+        if (connections_count > 1024)
+            large_vertices.push_back(cur_ver);
+    }
+*/
 }
 
-void user_algorithm(GraphCSR _graph, int *_levels, int _source_vertex)
+void user_algorithm(GraphCSR _graph, int *_levels, int _source_vertex, int *device_levels)
 {
     // FIXME: implement GPU computations here
     int vertices_count = _graph.vertices_count;
     //cpu_bellman_ford_edges_list(_graph, _result, _source_vertex);
-    
-    int *device_levels;
-    SAFE_CALL(cudaMalloc((void**)&device_levels, vertices_count * sizeof(int)));
-    
+
+//    int *device_levels;
+//    SAFE_CALL(cudaMalloc((void**)&device_levels, vertices_count * sizeof(int)));
+
     // compute shortest paths on GPU
     gpu_bfs_wrapper(_graph.outgoing_ptrs, _graph.outgoing_ids, _graph.vertices_count, _graph.edges_count, _source_vertex, device_levels);
 
     // copy results back to host
     SAFE_CALL(cudaMemcpy(_levels, device_levels, vertices_count * sizeof(int), cudaMemcpyDeviceToHost));
 
-    SAFE_CALL(cudaFree(device_levels));
+//    SAFE_CALL(cudaFree(device_levels));
 }
 
 void free_memory(GraphCSR _gpu_graph)
@@ -140,25 +159,28 @@ void convert_edges_list_to_CSR(Graph &_edges_list_graph, GraphCSR &_csr_graph)
     _csr_graph.edges_count = _edges_list_graph.edges_count;
     int vertices_count = _edges_list_graph.vertices_count;
     long long edges_count = _edges_list_graph.edges_count;
-    
+
     vector<vector<TempEdgeData > >tmp_graph(_csr_graph.vertices_count);
-    
+
     int *old_src_ids = _edges_list_graph.src_ids;
     int *old_dst_ids = _edges_list_graph.dst_ids;
     float *old_weights = _edges_list_graph.weights;
-    
+
     for(long long int i = 0; i < edges_count; i++)
     {
         int src_id = old_src_ids[i];
         int dst_id = old_dst_ids[i];
         float weight = old_weights[i];
-        
+
         tmp_graph[src_id].push_back(TempEdgeData(dst_id, weight));
     }
-    
-    _csr_graph.outgoing_ptrs = new long long[vertices_count];
-    _csr_graph.outgoing_ids = new int[edges_count];
+
+//    _csr_graph.outgoing_ptrs = new long long[vertices_count];
+//    _csr_graph.outgoing_ids = new int[edges_count];
     _csr_graph.weights = new float[edges_count];
+
+    cudaMallocHost(&_csr_graph.outgoing_ptrs, sizeof(long long) * (vertices_count+1));
+    cudaMallocHost(&_csr_graph.outgoing_ids, sizeof(int) * (edges_count+1));
 
     // save optimised graph
     long long current_edge = 0;
@@ -278,16 +300,18 @@ int main(int argc, char **argv)
         }
         double t2 = omp_get_wtime();
         cout << "generation/load time: " << t2 - t1 << " sec" << endl;
-        
+
         // выделяем память под ответ
-        int *user_result = new int[graph.vertices_count];
-        
+//        int *user_result = new int[graph.vertices_count];
+        int *user_result;
+        cudaMallocHost(&user_result, sizeof(int) * graph.vertices_count);
+
         // преобразовываем граф
         GraphCSR csr_graph;
         cout << "conversion started" << endl;
         convert_edges_list_to_CSR(graph, csr_graph);
         cout << "converted" << endl;
-        
+
         int *tmp;
         cudaMalloc((void**)&tmp, sizeof(int));
         cout << "test malloc done" << endl;
@@ -303,14 +327,36 @@ int main(int argc, char **argv)
         // запускаем алгоритм
         cudaDeviceSynchronize();
         t1 = omp_get_wtime();
+
+        int *device_levels;
+        int vertices_count = gpu_graph.vertices_count;
+        SAFE_CALL(cudaMalloc((void**)&device_levels, vertices_count * sizeof(int)));
+
         int last_source = 0;
         cout << "will do " << iterations << " iterations" << endl;
-        for(int i = 0; i < iterations; i++)
+/*
+        #pragma omp parallel num_threads(2);
         {
-            last_source = rand() % graph.vertices_count;
-            user_algorithm(gpu_graph, user_result, last_source);
-        }
+            int tid = omp_get_thread_num();
+            int current_gpu = tid % 2;
+            cudaSetDevice(current_gpu);
+
+            int *local_result;
+            cudaHostMalloc(&local_result, graph.vertices_count * sizeof(int));
+
+            #pragma omp for schedule(dynamic)
+*/
+            for(int i = 0; i < iterations; i++)
+            {
+                last_source = rand() % graph.vertices_count;
+                user_algorithm(gpu_graph, user_result, last_source, device_levels);
+            }
+
+
+
+
         cudaDeviceSynchronize();
+        SAFE_CALL(cudaFree(device_levels));
         t2 = omp_get_wtime();
         double t_end = omp_get_wtime();
         cout << "BFS wall time: " << t2 - t1 << " sec" << endl;
@@ -322,16 +368,17 @@ int main(int argc, char **argv)
         cout << "#perf: " << ((double)(iterations) * graph.edges_count) / ((t_end - t_start) * 1e6) << endl;
         cout << "#time: " << t_end - t_start << endl;
         cout << "#check: " << check << endl;
-        
+
         // делаем проверку корректности каждый раз
         if(check)
         {
             verify_result(csr_graph, user_result, last_source);
         }
-        
+
         // освобождаем память
-        delete []user_result;
-        
+//        delete []user_result;
+        cudaFreeHost(user_result);
+
 	}
 	catch (const char *error)
 	{

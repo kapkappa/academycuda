@@ -7,3 +7,4 @@ bfs
 bfs.*
 object_files
 python.*
+*graph
