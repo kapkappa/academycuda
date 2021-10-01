@@ -251,9 +251,9 @@ void multigpu (int size) {
 
     for (int i = 0; i < deviceCnt; i++) {
         cudaSetDevice(i);
-        int check;
-        cudaGetDevice(&check);
-        assert(i == check);
+//        int check;
+//        cudaGetDevice(&check);
+//        assert(i == check);
         cudaMalloc((void**)&(a_d[i]), bytes_per_device);
         cudaMalloc((void**)&(b_d[i]), bytes_per_device);
         cudaMalloc((void**)&(c_d[i]), bytes_per_device);
