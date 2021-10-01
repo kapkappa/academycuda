@@ -18,7 +18,7 @@ def parse_output(output):
     return result
 
 
-username = str(getpass.getuser())
+username = "kapkappa"
 print username
 
 average_TEPS = 0
@@ -56,7 +56,7 @@ print average_TEPS
 host = socket.gethostname()
 port = 1026                  # The same port as used by the server
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(('graphit.parallel.ru', port))
+s.connect(('vgl-rating.parallel.ru', port))
 print "connected"
 data_dict = {"user_name": username,
              "average_TEPS": average_TEPS,

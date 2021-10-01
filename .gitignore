@@ -3,3 +3,7 @@ prog*
 cpu.*
 gpu.*
 core.*
+bfs
+bfs.*
+object_files
+python.*
