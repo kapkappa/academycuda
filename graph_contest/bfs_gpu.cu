@@ -35,7 +35,7 @@ void __global__ init_kernel(int *_levels, int _vertices_count, int _source_verte
 // main computational algorithm
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void __global__ bfs_kernel(int *_levels,
+__global__ void bfs_kernel(int *_levels,
                            long long *_outgoing_ptrs,
                            int *_outgoing_ids,
                            int _vertices_count,
@@ -43,7 +43,6 @@ void __global__ bfs_kernel(int *_levels,
                            int *_changes,
                            int _current_level)
 {
-//    register const int src_id = blockIdx.x * blockDim.x + threadIdx.x;
     register const int src_id = (blockIdx.x * blockDim.x + threadIdx.x) / 64;
 
     if (src_id < _vertices_count) // для всех графовых вершин выполнить следующее
@@ -95,9 +94,7 @@ void gpu_bfs_wrapper(long long *_outgoing_ptrs, int *_outgoing_ids, int _vertice
     {
         changes[0] = 0;
 
-        SAFE_KERNEL_CALL((bfs_kernel <<< compute_blocks, compute_threads >>>
-        (_levels, _outgoing_ptrs, _outgoing_ids, _vertices_count, _edges_count,
-         changes, current_level)));
+        SAFE_KERNEL_CALL((bfs_kernel<<<compute_blocks, compute_threads>>>(_levels, _outgoing_ptrs, _outgoing_ids, _vertices_count, _edges_count, changes, current_level)));
 
         current_level++;
     }

@@ -58,7 +58,7 @@ void parse_cmd_params(int _argc, char **_argv, int &_scale, int &_avg_degree,
         {
             _graph_type = "rmat";
         }
-        
+
         if (option.compare("-random_uniform") == 0)
         {
             _graph_type = "random_uniform";
