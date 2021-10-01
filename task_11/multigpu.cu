@@ -6,6 +6,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#include <omp.h>
+
 #define BLOCKSIZE 1024
 
 const float EPS = 1.e-06;
@@ -224,7 +226,7 @@ void multigpu (int size) {
 
     int deviceCnt;
     cudaGetDeviceCount(&deviceCnt);
-    deviceCnt = 2;
+      deviceCnt = 2;
     printf("Devices: %d", deviceCnt);
 
     int bytes_per_device = nBytes / deviceCnt + 1;
@@ -249,6 +251,9 @@ void multigpu (int size) {
 
     for (int i = 0; i < deviceCnt; i++) {
         cudaSetDevice(i);
+        int check;
+        cudaGetDevice(&check);
+        assert(i == check);
         cudaMalloc((void**)&(a_d[i]), bytes_per_device);
         cudaMalloc((void**)&(b_d[i]), bytes_per_device);
         cudaMalloc((void**)&(c_d[i]), bytes_per_device);
@@ -256,6 +261,9 @@ void multigpu (int size) {
 
     for (int i = 0; i < deviceCnt; i++) {
         cudaSetDevice(i);
+//        int check;
+//        cudaGetDevice(&check);
+//        assert(i == check);
         printf("i am on device %d\nposition is %d\n", i, n_per_device*i);
         cudaEventRecord(start[i]);
         cudaMemcpyAsync(a_d[i], a + n_per_device * i, bytes_per_device, cudaMemcpyHostToDevice);
@@ -305,6 +313,66 @@ void multigpu (int size) {
         cudaFree(b_d[i]);
         cudaFree(c_d[i]);
     }
+}
+
+void thread_gpu (int size) {
+    int n = size;
+    int nBytes = n * sizeof(float);
+
+    float *a, *b, *c;
+    float *a_d, *b_d, *c_d;
+
+    int deviceCnt;
+    cudaGetDeviceCount(&deviceCnt);
+    printf("Devices: %d\n", deviceCnt);
+
+    dim3 block(BLOCKSIZE);
+    dim3 grid((unsigned int)ceil(n/(float)block.x) / deviceCnt);
+
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&start);
+
+    cudaHostAlloc(&a, nBytes, 0);
+    cudaHostAlloc(&b, nBytes, 0);
+    cudaHostAlloc(&c, nBytes, 0);
+
+    for (int i = 0; i < n; i++) {
+        a[i] = rand() / (float)RAND_MAX;
+        b[i] = rand() / (float)RAND_MAX;
+        c[i] = 0;
+    }
+
+    int n_per_device = n / deviceCnt + 1;
+    int bytes_per_device = nBytes / deviceCnt + 1;
+#pragma omp parallel num_threads(deviceCnt)
+    {
+        int device = omp_get_thread_num();
+        cudaSetDevice(device);
+        cudaMalloc(&a_d, bytes_per_device);
+        cudaMalloc(&b_d, bytes_per_device);
+        cudaMalloc(&c_d, bytes_per_device);
+
+        cudaEventRecord(start);
+        cudaMemcpy(a_d, a + device * n_per_device, bytes_per_device, cudaMemcpyHostToDevice);
+        cudaMemcpy(b_d, c + device * n_per_device, bytes_per_device, cudaMemcpyHostToDevice);
+
+        vectorAddGPU<<<grid, block>>>(a_d, b_d, c_d, n_per_device);
+        cudaMemcpy(c + device * n_per_device, c_d, bytes_per_device, cudaMemcpyDeviceToHost);
+        cudaDeviceSynchronize();
+        cudaEventRecord(stop);
+        cudaEventSynchronize(stop);
+        float ms = 0;
+        cudaEventElapsedTime(&ms, start, stop);
+        printf("Elapsed time: %f\n", ms);
+        cudaFree(a_d);
+        cudaFree(b_d);
+        cudaFree(c_d);
+    }
+
+    cudaFreeHost(a);
+    cudaFreeHost(b);
+    cudaFreeHost(c);
 }
 
 int main(int argc, char **argv) {
